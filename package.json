@@ -1,0 +1,27 @@
+{
+  "name": "neocertif",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "bunx --bun vite",
+    "buildGithubPages": "bunx --bun vite build --base=/neocertifweb/",
+    "build": "bunx --bun vite build"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.5.0",
+    "@codemirror/lang-python": "^6.1.6",
+    "@codemirror/view": "^6.26.3",
+    "@vercel/node": "^3.1.7",
+    "audiomotion-analyzer": "^4.4.0",
+    "axios": "^1.7.2",
+    "codemirror": "^6.0.1",
+    "openai": "^4.48.3",
+    "prismjs": "^1.29.0",
+    "save": "^2.9.0",
+    "thememirror": "^2.0.1"
+  }
+}

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neocertif App</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div id="app">
+    <div id="gauche">
+      <div id="editorProblemStatement" class="editorProblemStatement">
+        Nous voulons avoir une nouvelle classe Item telle que :
+        <br>
+        Un nouvel article peut être créé avec
+        <pre><code class="language-python">Item(price, weight)</code></pre>
+        On aura accès au prix et au poids d'un article avec Item.price et Item.weight.
+        <br>
+        Ecrivez le code de cette classe, avec le constructeur qui convient.
+        <br>
+        Exemple de code utilisant la classe :
+        <pre><code class="language-python">item = Item(10, 5)
+print(item.price) # 10
+print(item.weight) # 5</code></pre>
+      </div>
+      <div id="ai" class="ai"></div>
+      <div class="buttons">
+<!--        <button id="neoai1">
+          &#x1F916; NEOAI 1
+        </button>
+        <button id="neoai2">
+          &#x1F916; NEOAI 2
+        </button>
+        <button id="neoai3">
+          &#x1F916; NEOAI 3
+        </button> -->
+        <button id="demo2">
+          &#9197; DEMO 2
+        </button> 
+      </div>
+    </div>
+  </div>
+  <div id="droite">
+    <div id="editorResponse" class="editorResponse"></div>
+    <button class="submit-button" id="submit-button">Soumettre la réponse</button>
+  </div>
+  <div id="visualizer-container"></div>
+  <script type="module" src="/main.ts"></script>
+</body>
+
+</html>
