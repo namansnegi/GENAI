@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 
 
 // Initialize OpenAI with the correct configuration
-const openai = new OpenAI(process.env.OPENAI_API_KEY);
+const openai = new OpenAI(`${process.env.OPENAI_API_KEY}`);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { feedbackText } = req.body;
