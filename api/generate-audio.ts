@@ -1,8 +1,12 @@
 // api/generate-audio.ts
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import OpenAI from 'openai';
+import { Configuration, OpenAIApi } from 'openai';
 
-const openai = new OpenAI(process.env.OPENAI_API_KEY);
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const openai = new OpenAIApi(configuration);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { feedbackText } = req.body;
