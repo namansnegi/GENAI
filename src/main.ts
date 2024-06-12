@@ -10,7 +10,7 @@ import { defaultKeymap } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
 import AudioMotionAnalyzer from 'audiomotion-analyzer';
 
-import { handleButtonClick } from './utils';
+import { handleButtonClick } from '../utils';
 
 const submitButton = document.getElementById('submit-button') as HTMLButtonElement | null;
 const editorResponse = document.getElementById(
