@@ -19,7 +19,7 @@ const editorResponse = document.getElementById(
 const editorProblemStatement = document.getElementById(
   'editorProblemStatement',
 )?.innerText;
-
+let currentStep = 0;
 
 if (!submitButton) {
   throw new Error("Element 'submit-button' not found");

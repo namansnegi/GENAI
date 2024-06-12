@@ -14,7 +14,7 @@ import neoai2_2ogg from './neoai2_2.ogg';
 import neoai3_2ogg from './neoai3_2.ogg';
 import neoai4_2ogg from './neoai4_2.ogg';
 import submit2ogg from './submit2.ogg';
-import { createAudioButton, playAudio, typingEffectFunction, activateMic } from './utils';
+import {generateAudio, startScenario, loadScenario, continueScenario } from './utils';
 
 
 const aiElement = document.getElementById('ai');  
@@ -42,7 +42,52 @@ const demo1Button = document.getElementById('demo1')!;
 demo1Button.addEventListener('click', () => {
   window.location.href = "./index.html";
 });
-createAudioButton(audioMotion, submit2ogg, 'submit-button', "Vous êtes un développeur Python freelance. <br><br> \
+
+const submitButton = document.getElementById('submit-button') as HTMLButtonElement | null;
+
+
+let scenarioLoaded = 0;
+
+const scenario = 'Vous êtes un développeur Python freelance. Vous avez récemment livré un projet à un client qui vous a engagé pour développer un script automatisant certaines tâches de traitement de données. Le projet a été discuté et validé par le client avant le début du développement. Vous avez travaillé sur le projet pendant deux semaines et avez livré dans les délais impartis. Le client revient vers vous avec plusieurs plaintes. Vous allez maintenant repondre au client'
+
+
+let chatHistory = [
+  {
+    role: 'system',
+    content: `Scenario: Vous êtes un client qui a reçu un script Python pour automatiser les tâches de traitement de données d'un développeur freelance.
+    Vous avez discuté et approuvé les exigences du projet avec le développeur. Le développeur a travaillé pendant deux semaines et a livré le projet à temps.
+    Vous exprimez maintenant plusieurs plaintes concernant le projet livré. Veuillez fournir des commentaires détaillés sur les problèmes que vous rencontrez avec le projet.`,
+  },
+];
+chatHistory.push({ 
+  role: 'system', 
+  content: "En tant que client, vous êtes mécontent du projet livré. Veuillez commencer la conversation en exprimant une ou deux préoccupations majeures concernant le projet. Soyez bref et précis et montrez que vous n'êtes pas satisfait." });
+
+
+submitButton!.addEventListener('click', async (event: MouseEvent) => {
+  if  (scenarioLoaded == 0){
+    const audiofile = await generateAudio(scenario)
+    loadScenario(
+      audioMotion,
+      audiofile,
+      scenario,
+    )
+    scenarioLoaded = 1;
+    submitButton!.textContent = 'Next';
+  } else if (scenarioLoaded === 1) {
+    startScenario(
+      chatHistory,
+      audioMotion,
+    );
+    scenarioLoaded = 2;
+  }  else if (scenarioLoaded === 2) {
+
+     await continueScenario(chatHistory, audioMotion);
+}
+});
+
+
+/* createAudioButton(audioMotion, submit2ogg, 'submit-button', "Vous êtes un développeur Python freelance. <br><br> \
 Vous avez récemment livré un projet à un client qui vous a engagé pour développer un script automatisant certaines tâches de traitement de données. <br><br> \
 Le projet a été discuté et validé par le client avant le début du développement. Vous avez travaillé sur le projet pendant deux semaines et l'avez livré dans les délais impartis. <br><br>\
 Le client revient vers vous avec plusieurs plaintes. Vous allez maintenant répondre au client.<br><br>");
@@ -66,3 +111,4 @@ createAudioButton(audioMotion, neoai4_2ogg, 'neoai4', "D'accord, cela me semble 
 - Proposer des solutions et un plan d'action pour résoudre les problèmes.<br><br>\
 - Maintenir une attitude professionnelle et calme tout au long de l'échange.<br><br>\
 - Rétablir la satisfaction du client et préserver la relation professionnelle.");
+ */
