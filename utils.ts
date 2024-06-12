@@ -1,8 +1,6 @@
 import AudioMotionAnalyzer from 'audiomotion-analyzer';
-import OpenAI from 'openai';
 import axios from 'axios';
 import './style.css';
-
 
 let isPlaying: boolean = false;
 let isWriting: boolean = false;
@@ -11,7 +9,7 @@ let mediaRecorder: MediaRecorder;
 let chunks: BlobPart[] = [];
 let submitState = {
   currentStep: 0,
-  attempts: 0
+  attempts: 0,
 };
 
 export function createAudioButton(
@@ -30,20 +28,16 @@ export function createAudioButton(
   audio.addEventListener('ended', () => {
     isPlaying = false;
     console.log('Audio ended');
-    
+
     if (state === 0 && isCorrect) {
       activateMic(audioMotion);
     } else if (state === 1 || state === 2) {
       activateMic(audioMotion);
     }
   });
-
 }
 
-export function playAudio(
-  audio: HTMLAudioElement,
-  audioMotion: AudioMotionAnalyzer,
-) {
+export function playAudio(audio: HTMLAudioElement, audioMotion: AudioMotionAnalyzer) {
   if (!isPlaying) {
     audioMotion.disconnectInput(micStream, true);
     audioMotion.connectInput(audio);
@@ -55,9 +49,7 @@ export function playAudio(
 }
 
 export function typingEffectFunction(text: string) {
-  const editorProblemStatement = document.getElementById(
-    'editorProblemStatement',
-  );
+  const editorProblemStatement = document.getElementById('editorProblemStatement');
   if (!editorProblemStatement) {
     throw new Error("Element 'editorProblemStatement' not found");
   }
@@ -81,10 +73,7 @@ export function typingEffectFunction(text: string) {
         } else {
           // If the segment is text, insert it character by character
           if (i < segment.length) {
-            editorProblemStatement.insertAdjacentText(
-              'beforeend',
-              segment.charAt(i),
-            );
+            editorProblemStatement.insertAdjacentText('beforeend', segment.charAt(i));
             i++;
           } else {
             currentSegment++;
@@ -137,17 +126,8 @@ export function activateMic(audioMotion: AudioMotionAnalyzer) {
 
 export async function generateAudio(feedbackText: string): Promise<string> {
   try {
-    const response = await openai.audio.speech.create({
-      model: 'tts-1',
-      voice: 'alloy',
-      input: feedbackText,
-    });
-
-    const arrayBuffer = await response.arrayBuffer();
-    const blob = new Blob([arrayBuffer], { type: 'audio/opus' });
-    const audioUrl = URL.createObjectURL(blob);
-
-    return audioUrl;
+    const response = await axios.post('/api/generate-audio', { feedbackText });
+    return response.data.audioUrl;
   } catch (error) {
     console.error('Error creating audio:', error);
     throw error;
@@ -174,8 +154,16 @@ export async function handleNEOAIButtonClick(): Promise<string> {
       chunks = [];
 
       try {
-        const text = await generateText(audioFile);
-        resolve(text);
+        const formData = new FormData();
+        formData.append('audioFile', audioFile);
+
+        const response = await axios.post('/api/handle-neoaibuttonclick', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        resolve(response.data.text);
       } catch (error) {
         console.error('Error generating text:', error);
         reject(error);
@@ -184,36 +172,9 @@ export async function handleNEOAIButtonClick(): Promise<string> {
   });
 }
 
-export const generateText = async (audioFile: Blob): Promise<string> => {
-  try {
-    const formData = new FormData();
-    formData.append('file', audioFile, 'audio.wav');
-    formData.append('model', 'whisper-1');
-    formData.append('response_format', 'text');
-
-    const response = await axios.post(
-      'https://api.openai.com/v1/audio/transcriptions',
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      },
-    );
-
-    console.log('Transcription response:', response);
-
-    return response.data; // Ensure this returns the transcription text
-  } catch (error) {
-    console.error('Error transcribing audio:', error);
-    throw error;
-  }
-};
-
 export const generatePrompt = (
-  messages: { role: string; content: string }[], 
-  isSubmit: boolean, 
+  messages: { role: string; content: string }[],
+  isSubmit: boolean,
   currentStep: number,
 ) => {
   const prompt = messages.map((message) => ({
@@ -271,39 +232,20 @@ export const handleChatGPTResponse = async (
   attempts: number,
 ) => {
   try {
-    const prompt = generatePrompt(messages, isSubmit, currentStep);
-    console.log(prompt);
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: 'gpt-3.5-turbo',
-        messages: prompt,
-        n: 1,
-        stop: null,
-        temperature: 0.9,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-      },
-    );
+    const response = await axios.post('/api/handle-chatgptresponse', {
+      messages,
+      isSubmit,
+      currentStep,
+      attempts,
+    });
 
-    const responseText = response.data.choices[0].message.content;
-    const responseData = JSON.parse(responseText);
-
-    const feedbacktext = responseData.feedback;
-    const isCorrect = responseData.correct;
-    const followUpQuestion = responseData.followUpQuestion;
+    const { feedbacktext, isCorrect, followUpQuestion } = response.data;
 
     let feedback = feedbacktext;
     if (followUpQuestion) {
       feedback += `<br><br>${followUpQuestion}`;
     }
     const audioFile = await generateAudio(feedback);
-
-    console.log(responseData)
 
     return { feedback, isCorrect, audioFile };
   } catch (error) {
@@ -312,35 +254,17 @@ export const handleChatGPTResponse = async (
   }
 };
 
-const mockChatGPTResponse = async (messages) => {
-  const userMessages = messages.filter((message) => message.role === 'user');
-  const lastUserMessage = userMessages[userMessages.length - 1].content;
-  console.log('Last user message:', lastUserMessage); // Debug log
-
-  if (lastUserMessage.includes("User's response:")) {
-    return 'Thanks pour cette proposition. <br><br> \
-              Je vais vous poser quelques questions sur ce code, merci de répondre à l’oral instantanément. <br><br> \
-              Quel est le rôle de __init__ dans la classe Item, comment s’appelle ce type de fonction?';
-  }
-  if (lastUserMessage.includes('Follow-up question response:')) {
-    return 'Merci pour cette réponse. <br><br> \
-              La réponse correcte devrait inclure la gestion du scénario suivant... <br><br> \
-              Voici une autre question de suivi.';
-  }
-  return 'Ceci est une réponse simulée.';
-};
-
 const fetchAndDisplayFeedback = async (
   event: MouseEvent,
   chatHistory: any[],
   isSubmit: boolean,
   currentStep: number,
   attempts: number,
-  audioMotion: AudioMotionAnalyzer
+  audioMotion: AudioMotionAnalyzer,
 ) => {
   event.preventDefault();
 
-  const { feedback,isCorrect, audioFile } = await handleChatGPTResponse(
+  const { feedback, isCorrect, audioFile } = await handleChatGPTResponse(
     chatHistory,
     isSubmit,
     currentStep,
@@ -355,11 +279,11 @@ const fetchAndDisplayFeedback = async (
 
   createAudioButton(audioMotion, audioFile, currentStep, isCorrect, feedback);
 
-  return isCorrect
+  return isCorrect;
 };
 
 const addUserResponseToChatHistory = (
-  chatHistory:any[] , 
+  chatHistory: any[],
   editorResponse: HTMLDivElement,
 ) => {
   const userResponse = editorResponse.innerText;
@@ -371,14 +295,12 @@ const addUserResponseToChatHistory = (
   });
 };
 
-
 export async function handleButtonClick(
   event: MouseEvent,
   chatHistory: any[],
   submitButton: HTMLButtonElement | null,
   editorResponse: HTMLDivElement,
   audioMotion: AudioMotionAnalyzer,
- 
 ) {
   console.log('chat history', chatHistory);
   if (submitState.currentStep === 0) {
@@ -390,30 +312,36 @@ export async function handleButtonClick(
       true,
       submitState.currentStep,
       submitState.attempts,
-      audioMotion
+      audioMotion,
     );
 
-    console.log('correct',isCorrect)
-    console.log('currentStep',submitState.currentStep)
+    console.log('correct', isCorrect);
+    console.log('currentStep', submitState.currentStep);
 
     if (isCorrect) {
-      submitState.currentStep++;  
-      submitButton!.textContent = 'Next'; 
+      submitState.currentStep++;
+      submitButton!.textContent = 'Next';
       console.log('This is happening');
-    } else if (submitState.attempts === 2) {  
+    } else if (submitState.attempts === 2) {
       submitButton!.textContent = 'Thanks';
       submitButton!.disabled = true;
     }
-
-  }  else {
+  } else {
     try {
-      const userResponse = await handleNEOAIButtonClick(); 
+      const userResponse = await handleNEOAIButtonClick();
       chatHistory.push({
         role: 'user',
         content: `User's response: ${userResponse}`,
       });
 
-      await fetchAndDisplayFeedback(event, chatHistory, false, submitState.currentStep, submitState.attempts, audioMotion);
+      await fetchAndDisplayFeedback(
+        event,
+        chatHistory,
+        false,
+        submitState.currentStep,
+        submitState.attempts,
+        audioMotion,
+      );
 
       submitState.currentStep++;
 
@@ -424,16 +352,16 @@ export async function handleButtonClick(
         submitButton!.disabled = true;
         console.log('Button text set to "Thanks" and disabled');
       }
-
     } catch (error) {
       console.error('Error handling button click:', error);
     }
   }
 }
+
 export async function loadScenario(
   audioMotion: AudioMotionAnalyzer,
   audioPath: string,
-  scenario: string
+  scenario: string,
 ): Promise<void> {
   try {
     const audio = new Audio(audioPath);
@@ -452,21 +380,21 @@ export async function loadScenario(
 
 export async function startScenario(
   chatHistory: any[],
-  audioMotion: AudioMotionAnalyzer
+  audioMotion: AudioMotionAnalyzer,
 ): Promise<void> {
   try {
     console.log('Starting scenario...', chatHistory);
-    const initialResponse = await sendMessage(chatHistory);
+    const initialResponse = await axios.post('/api/start-scenario', { chatHistory });
 
     console.log('Response to start', initialResponse);
 
-    chatHistory.push({ role: 'assistant', content: initialResponse });
+    chatHistory.push({ role: 'assistant', content: initialResponse.data });
 
-    const audiofile = await generateAudio(initialResponse);
+    const audiofile = await generateAudio(initialResponse.data);
     const audio = new Audio(audiofile);
 
     playAudio(audio, audioMotion);
-    typingEffectFunction(initialResponse);
+    typingEffectFunction(initialResponse.data);
 
     audio.addEventListener('ended', () => {
       isPlaying = false;
@@ -480,7 +408,7 @@ export async function startScenario(
 
 export async function continueScenario(
   chatHistory: any[],
-  audioMotion: AudioMotionAnalyzer
+  audioMotion: AudioMotionAnalyzer,
 ): Promise<void> {
   try {
     const userResponse = await handleNEOAIButtonClick();
@@ -494,17 +422,17 @@ export async function continueScenario(
       content: `Continuer le scénario en répondant à la réponse de l'utilisateur. Soyez bref et précis et montrez que vous n'êtes pas satisfait.`,
     });
 
-    const response = await sendMessage(chatHistory);
+    const response = await axios.post('/api/continue-scenario', { chatHistory });
 
     console.log('Response to continue', response);
 
-    chatHistory.push({ role: 'assistant', content: response });
+    chatHistory.push({ role: 'assistant', content: response.data });
 
-    const audiofile = await generateAudio(response);
+    const audiofile = await generateAudio(response.data);
     const audio = new Audio(audiofile);
 
     playAudio(audio, audioMotion);
-    typingEffectFunction(response);
+    typingEffectFunction(response.data);
 
     audio.addEventListener('ended', () => {
       isPlaying = false;
@@ -516,28 +444,3 @@ export async function continueScenario(
   }
 }
 
-export async function sendMessage(messages: any[]): Promise<string> {
-  try {
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: 'gpt-3.5-turbo',
-        messages: messages,
-        n: 1,
-        stop: null,
-        temperature: 0.9,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-      }
-    );
-
-    return response.data.choices[0].message.content;
-  } catch (error) {
-    console.error('Error sending message:', error);
-    return 'There was an error processing your request.';
-  }
-}

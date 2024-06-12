@@ -19,7 +19,6 @@ const editorResponse = document.getElementById(
 const editorProblemStatement = document.getElementById(
   'editorProblemStatement',
 )?.innerText;
-let currentStep = 0;
 
 if (!submitButton) {
   throw new Error("Element 'submit-button' not found");
@@ -35,11 +34,6 @@ const chatHistory = [
     content: `Problem: ${editorProblemStatement}`,
   },
 ];
-
-let submitState = {
-  currentStep: 0,
-  attempts: 0
-};
 
 submitButton!.addEventListener('click', (event: MouseEvent) => {
   handleButtonClick(
