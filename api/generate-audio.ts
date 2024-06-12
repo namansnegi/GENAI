@@ -6,7 +6,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const response = await axios.post(
-      'https://api.openai.com/v1/audio/speech',
+      'https://api.openai.com/v1/audio/speech/create',
       {
         model: 'tts-1',
         voice: 'alloy',
